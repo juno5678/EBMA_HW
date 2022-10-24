@@ -8,6 +8,9 @@
 #include <time.h>
 #include <chrono>
 #include <vector>
-void EMBA(cv::Mat &current_frame,cv::Mat &ref_frame,cv::Mat &predict,int search_size,int block_size);
+void EMBA(cv::Mat &current_frame,cv::Mat &ref_frame,cv::Mat &predict,short search_size,short block_size);
+int Check_boundry(int now_pos,int search_size,int boundry);
+int Check_index_boundry(int index,int upper_boundry,int low_boundry);
+cv::Point Cal_MV(cv::Point &pt1,cv::Point &pt2);
 
 #endif

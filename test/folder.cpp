@@ -65,10 +65,13 @@ int main(int argc,char** argv)
         cv::split(Lab,Lab_vector);
         images_L_array.push_back(Lab_vector.at(0));
     }
+    printf("L array size : %d\n",(int)images_L_array.size());
     cv::Mat predict;
-    EMBA(images_L_array[0],images_L_array[1],predict,6,4);
-    cv::imshow("current frame",images_L_array[0]);
-    cv::imshow("ref frame",images_L_array[1]);
+    cv::Mat current_frame = images_L_array.at(0).clone();
+    cv::Mat ref_frame = images_L_array.at(1).clone();
+    EMBA(current_frame,ref_frame,predict,6,4);
+    cv::imshow("current frame",images_L_array.at(0));
+    cv::imshow("ref frame",images_L_array.at(1));
     cv::imshow("predict frame",predict);
     cv::waitKey(0);
 
