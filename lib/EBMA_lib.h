@@ -12,6 +12,8 @@ void EMBA(cv::Mat &current_frame,cv::Mat &ref_frame,cv::Mat &predict,short searc
 int Check_boundry(int now_pos,int search_size,int boundry);
 int Check_index_boundry(int index,int upper_boundry,int low_boundry);
 void Set_MV_color(cv::Mat &MV,cv::Mat &colorSpace,cv::Point &mv,cv::Point &set_pos,short  block_size);
+double Cal_EOF(cv::Mat &current_frame,cv::Mat &ref_frame,cv::Point &mv_temp,cv::Point &block_pos,short block_size);
+void Predict_ref_frame(cv::Mat &predict_frame,cv::Mat &ref_frame,cv::Point &mv,cv::Point &block_pos,short block_size);
 
 
 
