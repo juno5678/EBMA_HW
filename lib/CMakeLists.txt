@@ -1,9 +1,9 @@
 cmake_minimum_required(VERSION 3.10)
 
 # Set variables
-set(PROJECT_NAME EBMA_lib)
+set(PROJECT_NAME BMA_lib)
 set(PROJECT_LANGUAGE C CXX)
-set(PROJECT_HEADERS ${CMAKE_CURRENT_SOURCE_DIR}/EBMA_lib.h)
+set(PROJECT_HEADERS ${CMAKE_CURRENT_SOURCE_DIR}/EBMA_lib.h fast_EBMA_lib.h)
 set(PROJECT_DEPS )
 
 # Compile setting

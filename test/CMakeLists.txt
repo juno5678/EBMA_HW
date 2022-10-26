@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.10)
 # Set variables
 set(PROJECT_NAME EBMA_test)
 set(PROJECT_LANGUAGE C CXX)
-set(PROJECT_DEPS EBMA_lib ${OpenCV_LIBS})
+set(PROJECT_DEPS BMA_lib ${OpenCV_LIBS})
 
 # Compile setting
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall")

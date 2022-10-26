@@ -1,21 +1,6 @@
 #include "EBMA_lib.h"
 
-void Set_MV_color(cv::Mat &MV,cv::Mat &colorSpace,cv::Point &mv,cv::Point &set_pos,short  block_size)
-{
-    cv::Point center(colorSpace.cols/2,colorSpace.rows/2);
-    for(int i = 0 ; i < block_size;i++)
-    {
-        for(int j = 0 ; j < block_size;j++)
-        {
-            MV.at<cv::Vec3b>(set_pos.y+j,set_pos.x+i)[0] = colorSpace.at<cv::Vec3b>(std::round(center.y+mv.y),std::round(center.x+mv.x))[0];
-            MV.at<cv::Vec3b>(set_pos.y+j,set_pos.x+i)[1] = colorSpace.at<cv::Vec3b>(center.y+mv.y,center.x+mv.x)[1];
-            MV.at<cv::Vec3b>(set_pos.y+j,set_pos.x+i)[2] = colorSpace.at<cv::Vec3b>(center.y+mv.y,center.x+mv.x)[2];
-        }
-    }
-
-}
-
-int Check_boundry(int now_pos,int search_size,int boundry)
+static int Check_search_boundry(int now_pos,int search_size,int boundry)
 {
     if(boundry == 0)
     {
@@ -29,6 +14,29 @@ int Check_boundry(int now_pos,int search_size,int boundry)
     }
     return search_size;
 }
+void Set_MV_color(cv::Mat &MV,cv::Point &mv,cv::Point &set_pos,short  block_size)
+{
+    cv::Mat colorSpace = cv::imread("../data/color_space.png");
+    if(colorSpace.empty())
+    {
+        printf("didn't found colos space\n");
+        return;
+    }
+
+    cv::Point center(colorSpace.cols/2,colorSpace.rows/2);
+    for(int i = 0 ; i < block_size;i++)
+    {
+        for(int j = 0 ; j < block_size;j++)
+        {
+            MV.at<cv::Vec3b>(set_pos.y+j,set_pos.x+i)[0] = colorSpace.at<cv::Vec3b>(std::round(center.y+mv.y),std::round(center.x+mv.x))[0];
+            MV.at<cv::Vec3b>(set_pos.y+j,set_pos.x+i)[1] = colorSpace.at<cv::Vec3b>(center.y+mv.y,center.x+mv.x)[1];
+            MV.at<cv::Vec3b>(set_pos.y+j,set_pos.x+i)[2] = colorSpace.at<cv::Vec3b>(center.y+mv.y,center.x+mv.x)[2];
+        }
+    }
+    cv::imshow("color space",colorSpace);
+
+}
+
 int Check_index_boundry(int index,int upper_boundry,int low_boundry)
 {
     if(index >= upper_boundry)
@@ -38,24 +46,28 @@ int Check_index_boundry(int index,int upper_boundry,int low_boundry)
     else
         return index;
 }
-double Cal_EOF(cv::Mat &current_frame,cv::Mat &ref_frame,cv::Point &mv_temp,cv::Point &block_pos,short block_size)
+double Cal_EOF(cv::Mat &current_frame,cv::Mat &ref_frame,cv::Point &mv_temp,cv::Point &block_pos,short block_size,short p)
 {
     int M_width = current_frame.cols;
     int M_height = current_frame.rows;
-    int sum = 0;
+    double sum = 0;
+    double OF_value = 0;
     for(int bx = 0 ; bx < block_size;bx++)
     {
         for(int by = 0 ; by < block_size;by++)
         {
             cv::Point now_pos(block_pos.x+bx,block_pos.y+by);
-            cv::Point search_pos(now_pos.x+mv_temp.x,now_pos.y+mv_temp.y);
             int cur_I = current_frame.at<uchar>(now_pos);
             int del_x = current_frame.at<uchar>(now_pos.y,std::min(now_pos.x + 1,M_width-1 )) - cur_I;
             int del_y = current_frame.at<uchar>(std::min(now_pos.y+1,M_height-1),now_pos.x  )  - cur_I;
             int ref_I = ref_frame.at<uchar>(now_pos);
             int del_I = del_x*mv_temp.x + del_y*mv_temp.y;
 
-            int OF_value = std::sqrt((del_I + ref_I -cur_I) *(del_I + ref_I -cur_I));
+            if(p == 1)
+                OF_value = std::abs(del_I + ref_I -cur_I);
+            else
+                OF_value = std::sqrt( (del_I + ref_I -cur_I)*(del_I + ref_I -cur_I));
+
             sum += OF_value;
         }
     }
@@ -78,7 +90,30 @@ void Predict_ref_frame(cv::Mat &predict_frame,cv::Mat &ref_frame,cv::Point &mv,c
     }
 
 }
-void EMBA(cv::Mat &current_frame,cv::Mat &ref_frame,cv::Mat &predict_frame,short search_size,short block_size)
+double Cal_EDFD(cv::Mat &current_frame,cv::Mat &ref_frame,cv::Point &mv_temp,cv::Point &block_pos,short block_size,short p)
+{
+    int sum = 0;
+    double DFD_value = 0;
+    for(int bx = 0 ; bx < block_size;bx++)
+    {
+        for(int by = 0 ; by < block_size;by++)
+        {
+            cv::Point now_pos(block_pos.x+bx,block_pos.y+by);
+            cv::Point search_pos(now_pos.x+mv_temp.x,now_pos.y+mv_temp.y);
+            int cur_I = current_frame.at<uchar>(now_pos);
+            int ref_I = ref_frame.at<uchar>(search_pos);
+            if(p == 2)
+                DFD_value = std::sqrt((ref_I-cur_I)*(ref_I-cur_I));
+            else
+                DFD_value = std::abs(ref_I-cur_I);
+
+            sum += DFD_value;
+        }
+    }
+    return sum;
+
+}
+void EBMA(cv::Mat &current_frame,cv::Mat &ref_frame,cv::Mat &predict_frame,short search_size,short block_size)
 {
     int M_width = current_frame.cols;
     int M_height = current_frame.rows;
@@ -87,7 +122,6 @@ void EMBA(cv::Mat &current_frame,cv::Mat &ref_frame,cv::Mat &predict_frame,short
     predict_frame = cv::Mat(current_frame.size(),current_frame.type());
     cv::Mat MV_line = cv::Mat::zeros(current_frame.size(),current_frame.type());
     cv::Mat MV_color = cv::Mat::zeros(current_frame.size(),CV_8UC3);
-    cv::Mat colorSpace = cv::imread("../data/color_space.png");
 
     for(int j = 0; j < candidate_rows;j++)
     {
@@ -96,26 +130,27 @@ void EMBA(cv::Mat &current_frame,cv::Mat &ref_frame,cv::Mat &predict_frame,short
             double min = 10000;
             cv::Point MV(0,0);
             cv::Point block_pos(i*block_size,j*block_size);
-            for(int x = Check_boundry(i*block_size,-search_size,0) ; x < Check_boundry(i*block_size,search_size,M_width-1);x++)
+            for(int x = Check_search_boundry(i*block_size,-search_size,0) ; x < Check_search_boundry(i*block_size,search_size,M_width-1);x++)
             {
-                for(int y = Check_boundry(j*block_size,-search_size,0) ; y < Check_boundry(j*block_size,search_size,M_height-1);y++)
+                for(int y = Check_search_boundry(j*block_size,-search_size,0) ; y < Check_search_boundry(j*block_size,search_size,M_height-1);y++)
                 {
                     cv::Point mv_temp(x,y);
-                    double EOF_value = Cal_EOF(current_frame,ref_frame,mv_temp,block_pos,block_size);
-                    if(EOF_value < min)
+                    double criterion = Cal_EDFD(current_frame,ref_frame,mv_temp,block_pos,block_size);
+
+                    if(criterion < min)
                     {
-                        min = EOF_value;
+                        min = criterion;
                         MV = mv_temp;
                     }
                 }
             }
             cv::Point global_MV(block_pos.x+MV.x,block_pos.y+MV.y);
             cv::line(MV_line,block_pos,global_MV,cv::Scalar(255));
-            Set_MV_color(MV_color,colorSpace,MV,block_pos,block_size);
+            Set_MV_color(MV_color,MV,block_pos,block_size);
             Predict_ref_frame(predict_frame,ref_frame,MV,block_pos,block_size);
         }
     }
-    cv::imshow("color space",colorSpace);
     cv::imshow("mv line",MV_line);
     cv::imshow("mv color",MV_color);
 }
+

@@ -9,7 +9,7 @@ endif()
 
 # Set variables
 get_filename_component(DIR_NAME ${CMAKE_CURRENT_SOURCE_DIR} NAME)
-set(PROJECT_NAME HW_EBMA})
+set(PROJECT_NAME HW_BMA})
 set(PROJECT_LANGUAGE C CXX)
 
 # Environment variables
