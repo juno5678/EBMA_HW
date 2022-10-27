@@ -1,4 +1,6 @@
 #include "EBMA_lib.h"
+#include "opencv2/core.hpp"
+#include <cmath>
 
 static int Check_search_boundry(int now_pos,int search_size,int boundry)
 {
@@ -13,6 +15,15 @@ static int Check_search_boundry(int now_pos,int search_size,int boundry)
             return boundry-now_pos;
     }
     return search_size;
+}
+void Get_chrominance(cv::Mat &origin_img,cv::Mat &chrom_img)
+{
+    std::vector<cv::Mat> spl_cvtColor_img;
+    cv::Mat cvtColor_img;
+    cv::cvtColor(origin_img,cvtColor_img,cv::COLOR_BGR2Lab);
+    cv::split(cvtColor_img,spl_cvtColor_img);
+    chrom_img = spl_cvtColor_img.at(0);
+
 }
 void Set_MV_color(cv::Mat &MV,cv::Point &mv,cv::Point &set_pos,short  block_size)
 {
@@ -45,6 +56,33 @@ int Check_index_boundry(int index,int upper_boundry,int low_boundry)
         return low_boundry;
     else
         return index;
+}
+double Cal_MSE(const cv::Mat &predict_frame,const cv::Mat &target_frame)
+{
+    double sum = 0;
+    double MSE;
+    //cv::Mat predict = predict_frame.clone();
+    //cv::Mat target  = target_frame.clone();
+    //printf("pre L address : %d\t",&predict_frame);
+    //printf("tar l address : %d\t",&target_frame);
+
+    for(int i = 0 ; i < predict_frame.rows;i++)
+    {
+        for(int j = 0 ; j < predict_frame.cols;j++)
+        {
+            int predict_I = predict_frame.at<uchar>(j,i);
+            int target_I = target_frame.at<uchar>(j,i);
+            //if(predict_I != target_I)
+            //{
+            //    printf("predict  (%d,%d):%d\n",i,j,predict_I);
+            //    printf("target  (%d,%d):%d\n",i,j,target_I);
+            //}
+            MSE = std::round(std::sqrt(std::pow(predict_I - target_I,2))*1000)/1000;
+            sum +=MSE;
+
+        }
+    }
+    return sum/(predict_frame.rows*predict_frame.cols);
 }
 double Cal_EOF(cv::Mat &current_frame,cv::Mat &ref_frame,cv::Point &mv_temp,cv::Point &block_pos,short block_size,short p)
 {
@@ -135,7 +173,7 @@ void EBMA(cv::Mat &current_frame,cv::Mat &ref_frame,cv::Mat &predict_frame,short
                 for(int y = Check_search_boundry(j*block_size,-search_size,0) ; y < Check_search_boundry(j*block_size,search_size,M_height-1);y++)
                 {
                     cv::Point mv_temp(x,y);
-                    double criterion = Cal_EDFD(current_frame,ref_frame,mv_temp,block_pos,block_size);
+                    double criterion = Cal_EOF(current_frame,ref_frame,mv_temp,block_pos,block_size);
 
                     if(criterion < min)
                     {
@@ -145,6 +183,12 @@ void EBMA(cv::Mat &current_frame,cv::Mat &ref_frame,cv::Mat &predict_frame,short
                 }
             }
             cv::Point global_MV(block_pos.x+MV.x,block_pos.y+MV.y);
+            if(MV.x != 0 && MV.y != 0)
+            {
+                cv::circle(MV_line,global_MV,2,cv::Scalar(255),-1);
+                //printf("block_pos x: %d , y: %d\n",block_pos.x,block_pos.y);
+                //printf("gloval mv x: %d , y: %d\n",global_MV.x,global_MV.y);
+            }
             cv::line(MV_line,block_pos,global_MV,cv::Scalar(255));
             Set_MV_color(MV_color,MV,block_pos,block_size);
             Predict_ref_frame(predict_frame,ref_frame,MV,block_pos,block_size);

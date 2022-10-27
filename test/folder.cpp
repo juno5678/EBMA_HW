@@ -72,12 +72,14 @@ int main(int argc,char** argv)
     printf("L array size : %d\n",(int)images_L_array.size());
     cv::Mat predict;
     cv::Mat current_frame = images_L_array.at(0).clone();
-    cv::Mat ref_frame = images_L_array.at(2).clone();
+    cv::Mat ref_frame = images_L_array.at(1).clone();
     //cv::imshow("current frame",images_L_array.at(0));
     cv::imshow("current frame",current_frame);
     cv::imshow("ref frame",ref_frame);
-    //EBMA(current_frame,ref_frame,predict,6,4);
+    //EBMA(current_frame,ref_frame,predict,7,4);
     BMA_2Dlog(current_frame,ref_frame,predict,6,4);
+    double avg_mse = Cal_MSE(current_frame,ref_frame);
+    printf("avg mse : %3f\n",avg_mse);
     cv::imshow("predict frame",predict);
     cv::waitKey(0);
 
