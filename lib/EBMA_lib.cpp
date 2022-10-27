@@ -61,22 +61,13 @@ double Cal_MSE(const cv::Mat &predict_frame,const cv::Mat &target_frame)
 {
     double sum = 0;
     double MSE;
-    //cv::Mat predict = predict_frame.clone();
-    //cv::Mat target  = target_frame.clone();
-    //printf("pre L address : %d\t",&predict_frame);
-    //printf("tar l address : %d\t",&target_frame);
 
     for(int i = 0 ; i < predict_frame.rows;i++)
     {
         for(int j = 0 ; j < predict_frame.cols;j++)
         {
-            int predict_I = predict_frame.at<uchar>(j,i);
-            int target_I = target_frame.at<uchar>(j,i);
-            //if(predict_I != target_I)
-            //{
-            //    printf("predict  (%d,%d):%d\n",i,j,predict_I);
-            //    printf("target  (%d,%d):%d\n",i,j,target_I);
-            //}
+            int predict_I = predict_frame.at<uchar>(i,j);
+            int target_I = target_frame.at<uchar>(i,j);
             MSE = std::round(std::sqrt(std::pow(predict_I - target_I,2))*1000)/1000;
             sum +=MSE;
 
