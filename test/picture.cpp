@@ -14,9 +14,9 @@ int main(int argc,char **argv)
         return 0;
     }
     std::string current_frame_path = argv[1];
-    printf("current frame path : %s\n",current_frame_path.c_str());
+    //printf("current frame path : %s\n",current_frame_path.c_str());
     std::string ref_frame_path = argv[2];
-    printf("ref frame path : %s\n",ref_frame_path.c_str());
+    //printf("ref frame path : %s\n",ref_frame_path.c_str());
     cv::Mat cur_frame = cv::imread(current_frame_path);
 
     if(cur_frame.empty())
@@ -41,8 +41,11 @@ int main(int argc,char **argv)
     Get_chrominance(cur_img,L_cur_frame);
     Get_chrominance(ref_img,L_ref_frame);
 
-    //EBMA(L_cur_frame,L_ref_frame,predict_frame,6,4);
-    BMA_2Dlog(L_cur_frame,L_ref_frame,predict_frame,6,4);
+    //EBMA(L_cur_frame,L_ref_frame,predict_frame,7,4);
+    BMA_2Dlog(L_cur_frame,L_ref_frame,predict_frame,7,4);
+    //BMA_NTSS(L_cur_frame,L_ref_frame,predict_frame,7,4);
+    //BMA_TSS(L_cur_frame,L_ref_frame,predict_frame,7,4);
+    //BMA_4SS(L_cur_frame,L_ref_frame,predict_frame,7,4);
     printf("mse %3f\n",Cal_MSE(predict_frame,L_ref_frame));
 
     cv::imshow("predict_frame",predict_frame);

@@ -151,6 +151,7 @@ void EBMA(cv::Mat &current_frame,cv::Mat &ref_frame,cv::Mat &predict_frame,short
     predict_frame = cv::Mat(current_frame.size(),current_frame.type());
     cv::Mat MV_line = cv::Mat::zeros(current_frame.size(),current_frame.type());
     cv::Mat MV_color = cv::Mat::zeros(current_frame.size(),CV_8UC3);
+    int step_count = 0;
 
     for(int j = 0; j < candidate_rows;j++)
     {
@@ -159,9 +160,10 @@ void EBMA(cv::Mat &current_frame,cv::Mat &ref_frame,cv::Mat &predict_frame,short
             double min = 10000;
             cv::Point MV(0,0);
             cv::Point block_pos(i*block_size,j*block_size);
-            for(int x = Check_search_boundry(i*block_size,-search_size,0) ; x < Check_search_boundry(i*block_size,search_size,M_width-1);x++)
+            int n_search_point = 0;
+            for(int x = Check_search_boundry(i*block_size,-search_size,0) ; x <= Check_search_boundry(i*block_size,search_size,M_width-1);x++)
             {
-                for(int y = Check_search_boundry(j*block_size,-search_size,0) ; y < Check_search_boundry(j*block_size,search_size,M_height-1);y++)
+                for(int y = Check_search_boundry(j*block_size,-search_size,0) ; y <= Check_search_boundry(j*block_size,search_size,M_height-1);y++)
                 {
                     cv::Point mv_temp(x,y);
                     double criterion = Cal_EOF(current_frame,ref_frame,mv_temp,block_pos,block_size);
@@ -171,8 +173,11 @@ void EBMA(cv::Mat &current_frame,cv::Mat &ref_frame,cv::Mat &predict_frame,short
                         min = criterion;
                         MV = mv_temp;
                     }
+                n_search_point++;
                 }
             }
+            if(j == candidate_rows/2 && i == candidate_cols/2)
+                printf("n search point : %d\n",n_search_point);
             cv::Point global_MV(block_pos.x+MV.x,block_pos.y+MV.y);
             if(MV.x != 0 && MV.y != 0)
             {
@@ -183,8 +188,10 @@ void EBMA(cv::Mat &current_frame,cv::Mat &ref_frame,cv::Mat &predict_frame,short
             cv::line(MV_line,block_pos,global_MV,cv::Scalar(255));
             Set_MV_color(MV_color,MV,block_pos,block_size);
             Predict_ref_frame(predict_frame,ref_frame,MV,block_pos,block_size);
+            step_count++;
         }
     }
+    printf("step : %d\n",step_count);
     cv::imshow("mv line",MV_line);
     cv::imshow("mv color",MV_color);
 }
