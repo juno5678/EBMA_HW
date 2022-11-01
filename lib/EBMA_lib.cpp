@@ -27,7 +27,7 @@ void Get_chrominance(cv::Mat &origin_img,cv::Mat &chrom_img)
 }
 void Set_MV_color(cv::Mat &MV,cv::Point &mv,cv::Point &set_pos,short  block_size)
 {
-    cv::Mat colorSpace = cv::imread("../data/color_space.png");
+    cv::Mat colorSpace = cv::imread("../data/color_space2.png");
     if(colorSpace.empty())
     {
         printf("didn't found colos space\n");

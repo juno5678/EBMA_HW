@@ -34,7 +34,7 @@ void Diamond_search(cv::Mat &current_frame,cv::Mat &ref_frame,cv::Point &block_p
             n_search_point++;
             if(Check_search_boundry(search_pt,M_width,M_height))
             {
-                double criterion = Cal_EDFD(current_frame,ref_frame,now_mv,block_pos,block_size);
+                double criterion = Cal_EOF(current_frame,ref_frame,now_mv,block_pos,block_size);
                 if(criterion < min)
                 {
                     min = criterion;
@@ -69,7 +69,55 @@ void Square_search(cv::Mat &current_frame,cv::Mat &ref_frame,cv::Point &block_po
             n_search_point++;
             if(Check_search_boundry(search_pt,M_width,M_height))
             {
-                double criterion = Cal_EDFD(current_frame,ref_frame,now_mv,block_pos,block_size);
+                double criterion = Cal_EOF(current_frame,ref_frame,now_mv,block_pos,block_size);
+                if(criterion < min  )
+                {
+                    min = criterion;
+                    mv_temp = search_v;
+                }
+            }
+        }
+    }
+}
+void Fst_step_NTSS(cv::Mat &current_frame,cv::Mat &ref_frame,cv::Point &block_pos,cv::Point &now_pos,cv::Point &mv_temp,double &min,int &n_search_point,short block_size,short step_size)
+{
+    int M_width = current_frame.cols;
+    int M_height = current_frame.rows;
+    mv_temp = cv::Point(0,0);
+    for(int Sx = -1*step_size ; Sx <= 1*step_size ; Sx += step_size)
+    {
+        for(int Sy = -1*step_size ; Sy <= 1*step_size ; Sy += step_size)
+        {
+            cv::Point search_v = cv::Point(Sx,Sy);
+            cv::Point search_pt(now_pos.x+Sx,now_pos.y+Sy);
+            cv::Point now_mv(search_pt.x - block_pos.x,search_pt.y - block_pos.y);
+
+            n_search_point++;
+            if(Check_search_boundry(search_pt,M_width,M_height))
+            {
+                double criterion = Cal_EOF(current_frame,ref_frame,now_mv,block_pos,block_size);
+                if(criterion < min  )
+                {
+                    min = criterion;
+                    mv_temp = search_v;
+                }
+            }
+        }
+    }
+    for(int Sx = -1 ; Sx <= 1 ; Sx++ )
+    {
+        for(int Sy = -1 ; Sy <= 1 ; Sy++)
+        {
+            cv::Point search_v = cv::Point(Sx,Sy);
+            cv::Point search_pt(now_pos.x+Sx,now_pos.y+Sy);
+            cv::Point now_mv(search_pt.x - block_pos.x,search_pt.y - block_pos.y);
+            if((Sx == 0 && Sy == 0))
+                continue;
+
+            n_search_point++;
+            if(Check_search_boundry(search_pt,M_width,M_height))
+            {
+                double criterion = Cal_EOF(current_frame,ref_frame,now_mv,block_pos,block_size);
                 if(criterion < min  )
                 {
                     min = criterion;
@@ -111,7 +159,7 @@ void Fast_Square_search(cv::Mat &current_frame,cv::Mat &ref_frame,cv::Point &blo
 
             if(Check_search_boundry(search_pt,M_width,M_height))
             {
-                double criterion = Cal_EDFD(current_frame,ref_frame,now_mv,block_pos,block_size);
+                double criterion = Cal_EOF(current_frame,ref_frame,now_mv,block_pos,block_size);
                 if(criterion < min  )
                 {
                     min = criterion;
@@ -229,22 +277,35 @@ void BMA_NTSS(cv::Mat &current_frame,cv::Mat &ref_frame,cv::Mat &predict_frame,s
             {
                 if(step == 1)
                 {
-                    Square_search(current_frame,ref_frame,block_pos,now_pos,mv_temp,min,n_search_point,block_size,temp_step_size);
-                    temp_step_size = 1;
-                    step++;
-                }else if(step == 2)
-                {
-                    Square_search(current_frame,ref_frame,block_pos,now_pos,mv_temp,min,n_search_point,block_size,temp_step_size);
+                    Fst_step_NTSS(current_frame,ref_frame,block_pos,now_pos,mv_temp,min,n_search_point,block_size,temp_step_size);
                     if(mv_temp.x == 0 && mv_temp.y == 0)
                         search_one_block = false;
+                    else if( std::abs(mv_temp.x) == 1 || std::abs(mv_temp.y) == 1)
+                    {
+                        temp_step_size = 1;
+                        step = 2;
+                    }
                     else
-                        step++;
+                    {
+                        temp_step_size = std::ceil((double)temp_step_size/2);
+                        step = 3;
+                    }
                 }
-                else if(step == 3 )
+                else if(step == 2 )
                 {
                     Fast_Square_search(current_frame,ref_frame,block_pos,now_pos,mv_temp,min,n_search_point,block_size,temp_step_size);
                     search_one_block = false;
                 }
+                else if(step == 3)
+                {
+                    Square_search(current_frame,ref_frame,block_pos,now_pos,mv_temp,min,n_search_point,block_size,temp_step_size);
+                    if(temp_step_size == 1 || (mv_temp.x == 0 && mv_temp.y == 0))
+                        search_one_block = false;
+                    else
+                        temp_step_size = std::ceil((double)temp_step_size/2);
+
+                }
+
                 MV.x += mv_temp.x;
                 MV.y += mv_temp.y;
                 now_pos.x += mv_temp.x;
@@ -337,7 +398,9 @@ void BMA_2Dlog(cv::Mat &current_frame,cv::Mat &ref_frame,cv::Mat &predict_frame,
     predict_frame = cv::Mat(current_frame.size(),current_frame.type());
     cv::Mat MV_line = cv::Mat::zeros(current_frame.size(),current_frame.type());
     cv::Mat MV_color = cv::Mat::zeros(current_frame.size(),CV_8UC3);
-    short step_size = std::ceil((double)search_size/4);
+    int n = std::floor(std::log2(search_size));
+    int temp_n = std::pow(2,n-1);
+    short step_size = std::max(2,temp_n);
     printf("step size : %d\n",step_size);
     int max_search_pt = 0;
     int min_search_pt = 1000;
@@ -374,11 +437,11 @@ void BMA_2Dlog(cv::Mat &current_frame,cv::Mat &ref_frame,cv::Mat &predict_frame,
                 if( (mv_temp.x == 0 && mv_temp.y == 0) || std::abs(MV.x) == search_size-1 || std::abs(MV.y) == search_size-1)
                     temp_step_size = std::ceil((double)temp_step_size/2);
 
-                if(n_search_point == 31)
-                {
-                    printf("step : %d \t",step);
-                    printf("mv ( %d , %d )\n",MV.x,MV.y);
-                }
+                //if(n_search_point == 29)
+                //{
+                //    printf("step : %d \t",step);
+                //    //printf("mv ( %d , %d )\n",MV.x,MV.y);
+                //}
                 step++;
             }
 

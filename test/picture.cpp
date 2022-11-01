@@ -41,13 +41,15 @@ int main(int argc,char **argv)
     Get_chrominance(cur_img,L_cur_frame);
     Get_chrominance(ref_img,L_ref_frame);
 
-    //EBMA(L_cur_frame,L_ref_frame,predict_frame,7,4);
-    BMA_2Dlog(L_cur_frame,L_ref_frame,predict_frame,7,4);
-    //BMA_NTSS(L_cur_frame,L_ref_frame,predict_frame,7,4);
-    //BMA_TSS(L_cur_frame,L_ref_frame,predict_frame,7,4);
-    //BMA_4SS(L_cur_frame,L_ref_frame,predict_frame,7,4);
+    clock_t start = clock();
+   // EBMA(L_cur_frame,L_ref_frame,predict_frame,8,4);
+    //BMA_2Dlog(L_cur_frame,L_ref_frame,predict_frame,8,4);
+    //BMA_NTSS(L_cur_frame,L_ref_frame,predict_frame,8,4);
+    //BMA_TSS(L_cur_frame,L_ref_frame,predict_frame,8,4);
+    BMA_4SS(L_cur_frame,L_ref_frame,predict_frame,8,4);
+    clock_t end = clock();
+    printf("cost time : %0.8f sec \n", (float)(end - start) / CLOCKS_PER_SEC);
     printf("mse %3f\n",Cal_MSE(predict_frame,L_ref_frame));
-
     cv::imshow("predict_frame",predict_frame);
     cv::imshow("current frame",L_cur_frame);
     cv::imshow("ref frame",L_ref_frame);

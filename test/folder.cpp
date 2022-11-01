@@ -45,43 +45,50 @@ int main(int argc,char** argv)
         std::cout << "Error: Image files not found by path: " << images_path << std::endl;
         return 0;
     }
-    std::cout << "find " << png_filenames.size() << "of plate in this folder" << std::endl;
+    //std::cout << "find " << png_filenames.size() << "of plate in this folder" << std::endl;
 
     std::vector<cv::Mat> images_array;
     std::vector<cv::Mat> images_L_array;
     for(size_t i  = 0; i < png_filenames.size(); i ++)
     {
         cv::Mat src = imread(png_filenames_path[i],cv::IMREAD_COLOR);
-    images_array.push_back(src);
-    //cv::waitKey(1);
-    //cv::imshow("src",src);
-    //Mat result;
-    //string place_path = "../../align_license_plate/aligned_image_"+png_filenames[i];
-    //imwrite(place_path,result);
+        images_array.push_back(src);
     }
     std::vector<cv::Mat> Lab_vector;
     for(size_t i = 0; i < images_array.size();i++)
     {
-        //cv::String name = "image_"+std::to_string(i);
-        //cv::imshow(name,images_array.at(i));
         cv::Mat Lab;
-        cv::cvtColor(images_array.at(i),Lab,cv::COLOR_BGR2Lab);
-        cv::split(Lab,Lab_vector);
-        images_L_array.push_back(Lab_vector.at(0).clone());
+        Get_chrominance(images_array.at(i),Lab);
+        images_L_array.push_back(Lab.clone());
     }
     printf("L array size : %d\n",(int)images_L_array.size());
-    cv::Mat predict;
-    cv::Mat current_frame = images_L_array.at(0).clone();
-    cv::Mat ref_frame = images_L_array.at(1).clone();
+    clock_t start = clock();
+    for(size_t i = 0 ; i < images_L_array.size()-1;i++)
+    {
+        cv::Mat predict;
+        cv::Mat current_frame = images_L_array.at(i).clone();
+        cv::Mat ref_frame = images_L_array.at(i+1).clone();
+        //EBMA(current_frame,ref_frame,predict,8,4);
+        //BMA_4SS(current_frame,ref_frame,predict,8,4);
+        //BMA_TSS(current_frame,ref_frame,predict,8,4);
+        //BMA_2Dlog(current_frame,ref_frame,predict,8,4);
+        BMA_NTSS(current_frame,ref_frame,predict,8,4);
+        double avg_mse = Cal_MSE(predict,ref_frame);
+        printf("avg mse : %3f\n",avg_mse);
+    }
+    clock_t end = clock();
+    float total_time = (float)((end - start) / CLOCKS_PER_SEC);
+    printf("cost time per frame : %0.8f sec \n", total_time);
+    printf("avg cost time per frame : %0.8f sec \n", total_time/9.0);
     //cv::imshow("current frame",images_L_array.at(0));
-    cv::imshow("current frame",current_frame);
-    cv::imshow("ref frame",ref_frame);
+    //cv::imshow("current frame",current_frame);
+    //cv::imshow("ref frame",ref_frame);
     //EBMA(current_frame,ref_frame,predict,7,4);
-    BMA_2Dlog(current_frame,ref_frame,predict,6,4);
-    double avg_mse = Cal_MSE(current_frame,ref_frame);
-    printf("avg mse : %3f\n",avg_mse);
-    cv::imshow("predict frame",predict);
-    cv::waitKey(0);
+    //BMA_2Dlog(current_frame,ref_frame,predict,6,4);
+    //double avg_mse = Cal_MSE(current_frame,ref_frame);
+    //printf("avg mse : %3f\n",avg_mse);
+    //cv::imshow("predict frame",predict);
+    //cv::waitKey(0);
 
     cv::destroyAllWindows();
 
